@@ -1,0 +1,48 @@
+---
+- name: Ensure zstd's dependencies are installed (Debian).
+  apt: "pkg={{ item }} state=installed"
+  with_items:
+    - gcc
+    - make
+    - libc6-dev
+  when: ansible_os_family == 'Debian'
+
+- name: Get installed version
+  shell: "which zstd >/dev/null 2>&1 && (zstd --version | sed -e 's!.*v\\([0-9\\.]*\\),.*!\\1!')"
+  changed_when: false
+  failed_when: false
+  register: zstd_installed_version
+
+- name: Force zstd install if the version numbers do not match
+  set_fact:
+    zstd_reinstall_from_source: true
+  when: 'zstd_install_from_source_force_update and (zstd_installed_version|success and (zstd_installed_version.stdout | regex_replace("^.*?([0-9\.]+)$", "\\1") | version_compare(zstd_version, operator="!=")))'
+
+- name: Download zstd.
+  get_url:
+    url: "https://github.com/Cyan4973/zstd/archive/v{{ zstd_version }}.tar.gz"
+    dest: "{{ workspace }}/zstd-{{ zstd_version }}.tar.gz"
+    checksum: "{{ zstd_checksum }}"
+  when: zstd_installed_version|failed or zstd_reinstall_from_source
+
+- name: Expand zstd archive.
+  unarchive:
+    src: "{{ workspace }}/zstd-{{ zstd_version }}.tar.gz"
+    dest: "{{ workspace }}"
+    creates: "{{ workspace }}/zstd-{{ zstd_version }}/README.md"
+    copy: no
+  when: zstd_installed_version|failed or zstd_reinstall_from_source
+
+- name: Build zstd.
+  command: >
+    make PREFIX={{ zstd_install_path }} {{ item }}
+    chdir={{ workspace }}/zstd-{{ zstd_version }}
+  with_items:
+    - install
+  when: zstd_installed_version|failed or zstd_reinstall_from_source
+  become: yes
+
+- name: Run ldconfig
+  shell: ldconfig
+  when: zstd_installed_version|failed or zstd_reinstall_from_source
+  become: yes

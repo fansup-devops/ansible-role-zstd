@@ -1,0 +1,22 @@
+---
+workspace: /usr/local/src
+
+# If zstd_install_from_source is set to false, these two variables define whether
+# to use an additional repo for the package installation, and which zstd packages
+# will be installed.
+zstd_packages:
+  - zstd
+
+# If set to TRUE, zstd will be installed from source, using the version set with
+# the 'zstd_version' variable instead of using a package.
+zstd_install_from_source: false
+zstd_install_path: "/usr"
+zstd_version: "1.1.0"
+zstd_checksum: "sha256:61cbbd28ff78f658f0564c2ccc206ac1ac6abe7f2c65c9afdca74584a104ea51"
+
+# If zstd is already installed at and older version, force a new source build.
+# Only applies if zstd_install_from_source is `true`.
+zstd_install_from_source_force_update: false
+
+# Leave this at it's default.
+zstd_reinstall_from_source: false
